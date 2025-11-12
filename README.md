@@ -1,2 +1,2 @@
-# RL_toyproblem_project1
+# RL_toyproblem
 Reinforcement Learning 
