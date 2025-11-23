@@ -7,16 +7,29 @@ from config import EnvConfig
 market = Environment()
 trader = Agent()
 
-state = market.reset()
-trader_action = trader.select_action(state)
-next_step = market.step(trader_action)
-trader_learning = trader.learn_batch(states=state, actions=trader_action, rewards=next_step[1], next_states=next_step[0])
+batch_size = 10
 
-print('State: ', state)
-print('Trader action: ', trader_action)
-print('Next state: ', next_step)
-print("One training step loss:", trader_learning)
-print('Q value: ', trader.q_net(state))
+#0 Set the initial state
+state = market.reset()
+
+for i in range(10):
+    #1 choose action
+    trader_action = trader.select_action(state)
+
+    #2 set environment
+    next_state, reward = market.step(trader_action)
+
+    print('State: ', state)
+    print('Trader action: ', trader_action)
+    print('Reward: ', reward)
+    print('Next state: ', next_state)
+    print('Q values: ', trader.q_net(state), '\n')
+
+    # 3 Update the state
+    state = next_state
+
+print('-'*40, '\n')
+print('Cumulative reward: ', market.cum_reward)
 
 
 

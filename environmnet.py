@@ -1,6 +1,8 @@
 import torch
 from config import EnvConfig, State, Action, Reward
 
+torch.manual_seed(42)
+
 class Environment:
     def __init__(self):
         self.vol = torch.tensor(EnvConfig.vol, dtype=torch.float32)
@@ -14,6 +16,7 @@ class Environment:
         self.S = None  # current price S_t
         self.pos = None  # current position pos_t
         self.t = None  # step counter
+        self.cum_reward = None # cumulative reward
 
     def generate_next_price(self, prev_price) -> torch.Tensor:
         # ensure tensor type
@@ -41,6 +44,12 @@ class Environment:
         2. Pay friction for changing position: half_ba * |pos_t - pos_{t-1}|
         3. Simulate new price S_t
         4. Receive reward R_t as defined.
+
+
+        Returns:
+        next_state: shape (B, state_dim)
+        reward:     shape (B,)
+
         """
 
         #0 Current price and position
@@ -67,6 +76,7 @@ class Environment:
         #6 Update internal state
         self.S = new_price
         self.pos = new_pos
+        self.cum_reward += reward
         self.t += 1
 
         next_state = self._get_state()
@@ -76,6 +86,7 @@ class Environment:
     def reset(self) -> torch.Tensor:
         self.S = EnvConfig.S0
         self.pos = EnvConfig.map_action_to_position_tensor(EnvConfig.a0)
+        self.cum_reward = 0
         self.t = 0
 
         return self._get_state()
@@ -102,3 +113,5 @@ if __name__ == "__main__":
         print("Reward    :", reward.item())
         print("Price     :", env.S.item())
         print("Position  :", env.pos.item())
+
+

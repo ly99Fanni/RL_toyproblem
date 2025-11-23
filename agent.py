@@ -55,7 +55,7 @@ class Agent:
         actions = actions.to(self.device)
         rewards = rewards.to(self.device)
 
-        if states.size(0) != 1 and next_states.size(0) != 1:
+        if states.size(0) != 1 or next_states.size(0) != 1:
             states = states.to(self.device).unsqueeze(0)
             next_states = next_states.to(self.device).unsqueeze(0)
 
