@@ -1,21 +1,22 @@
 import torch
-from environmnet import Environment   # your class file
+from environmnet import Environment
+from agent import Agent
 from config import EnvConfig
 
-# Create environment
-env = Environment()
 
-# Reset manually or do your own reset method
-print("Initial state:", env.reset())
+market = Environment()
+trader = Agent()
 
-# Try each action: 0 = short, 1 = flat, 2 = long
-actions = [0, 1, 2, 2, 0]   # try various transitions
+state = market.reset()
+trader_action = trader.select_action(state)
+next_step = market.step(trader_action)
+trader_learning = trader.learn_batch(states=state, actions=trader_action, rewards=next_step[1], next_states=next_step[0])
 
-for t, a in enumerate(actions):
-    print(f"\n--- Step {t+1} | action = {a} ---")
-    next_state, reward = env.step(a)
+print('State: ', state)
+print('Trader action: ', trader_action)
+print('Next state: ', next_step)
+print("One training step loss:", trader_learning)
+print('Q value: ', trader.q_net(state))
 
-    print("Next state:", next_state)
-    print("Reward    :", reward.item())
-    print("Price     :", env.S.item())
-    print("Position  :", env.pos.item())
+
+

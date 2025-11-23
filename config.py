@@ -7,7 +7,7 @@ Reward = torch.Tensor
 
 class EnvConfig:
     S0:float = 100
-    a0: float= 0
+    a0: float= 1
     price_mean: float = 100
     kappa: float = 0.1
     vol: float = 2
@@ -34,7 +34,7 @@ class AgentConfig:
     gamma: float = 0.99 # discount factor for one period
     lr: float = 0.0001
     device: str = 'cpu'
-    n_actions: int = 3
-    state_dim: int = 2
+    n_actions: int = 3 # {0: short, 1: out, 2: long}
+    state_dim: int = 2 # (price, reward)
 
 

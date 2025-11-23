@@ -1,5 +1,5 @@
 import torch
-from config import State, AgentConfig
+from config import State, Action, AgentConfig
 from q_model import QNetwork
 import torch.nn as nn
 
@@ -7,6 +7,7 @@ torch.manual_seed(42)
 
 class Agent:
     def __init__(self):
+        self.epsilon = AgentConfig.epsilon
         self.device = AgentConfig.device
         self.n_actions = AgentConfig.n_actions
         self.gamma = AgentConfig.gamma
@@ -17,7 +18,7 @@ class Agent:
         self.loss_fn = nn.MSELoss()
 
 
-    def select_action(self, state: torch.Tensor) -> int:
+    def select_action(self, state: torch.Tensor) -> Action:
         """
         state: tensor shape (state_dim,)
         returns: action index (0, 1, or 2)
@@ -27,12 +28,12 @@ class Agent:
         # ε-soft / ε-greedy
         if torch.rand(1).item() < self.epsilon:
             # Explore: random action
-            action = torch.randint(0,self.n_actions, (1,)).item()
+            action = torch.randint(0,self.n_actions, (1,))
         else:
             # Exploit: argmax_a Q(s,a)
             with torch.no_grad():
                 q_values = self.q_net(state)         # shape (1, n_actions)
-                action = int(q_values.argmax(dim=1)) # scalar int
+                action = q_values.argmax(dim=1)
 
         return action
 
@@ -42,8 +43,7 @@ class Agent:
             states,
             actions,
             rewards,
-            next_states,
-            dones):
+            next_states):
         """
         Batch Q-learning update.
         shapes:
@@ -51,13 +51,13 @@ class Agent:
             actions:     (B,)
             rewards:     (B,)
             next_states: (B, state_dim)
-            dones:       (B,)
         """
-        states = states.to(self.device)
         actions = actions.to(self.device)
         rewards = rewards.to(self.device)
-        next_states = next_states.to(self.device)
-        dones = dones.to(self.device)
+
+        if states.size(0) != 1 and next_states.size(0) != 1:
+            states = states.to(self.device).unsqueeze(0)
+            next_states = next_states.to(self.device).unsqueeze(0)
 
         # 1. Compute Q(s,a) for each sample
         q_values = self.q_net(states)  # (B, n_actions)
@@ -69,7 +69,7 @@ class Agent:
         # 2. Compute targets
         with torch.no_grad():
             next_q = self.q_net(next_states).max(dim=1).values  # (B,)
-            targets = rewards + self.gamma * next_q * (1 - dones)
+            targets = rewards + self.gamma * next_q
 
         # 3. Loss (MSE over batch)
         loss = self.loss_fn(q_selected, targets)
@@ -79,63 +79,38 @@ class Agent:
         loss.backward()
         self.optimizer.step()
 
-
-
-
-
+        return loss.item()
 
 
 if __name__ == "__main__":
-    print("=== SANITY CHECK START ===")
-
-    # 1. Create agent
+    B = 1
     agent = Agent()
-    print("Agent created.")
-    print("Q-network:", agent.q_net)
 
-    # 2. Construct random state (tensor)
-    state_dim = agent.state_dim
-    dummy_state = torch.randn(state_dim)
-    print("Dummy state:", dummy_state)
+    # Fake batch
+    states      = torch.randn(B, agent.state_dim)
+    next_states = torch.randn(B,agent.state_dim)
+    actions     = torch.randint(0, agent.n_actions, (B,))
+    rewards     = torch.randn(B)
+    dones       = torch.randint(0, 2, (B,)).float()  # 0 or 1
 
-    # 3. Check forward pass
-    dummy_state_batch = dummy_state.unsqueeze(0)  # shape (1, state_dim)
-    q_vals = agent.q_net(dummy_state_batch)
-    print("Q-values shape:", q_vals.shape)
-    print("Q-values:", q_vals)
+    print('States: {}'.format(states))
+    print('Next state: {}'.format(next_states))
+    print('Actions: {}'.format(actions))
+    print('Rewards: {}'.format(rewards))
+    print('dones: {}\n'.format(dones))
 
-    assert q_vals.shape == (1, agent.n_actions), "Q-network output shape is wrong!"
+    # Test select_action
+    s0 = states[0]
+    a0 = agent.select_action(s0)
+    print("Selected action:", a0)
 
-    # 4. Test select_action()
-    agent.epsilon = 0.0   # force greedy
-    action = agent.select_action(dummy_state)
-    print("Selected action:", action)
+    # Test learn_batch
+    loss = agent.learn_batch(states, actions, rewards, next_states)
+    print("One training step loss:", loss)
 
 
-    assert isinstance(action, int), "Action must be an int!"
-    assert 0 <= action < agent.n_actions, "Action out of range!"
 
-    # 5. Dummy training step
-    print("\nRunning 1 dummy training step...")
 
-    # Make dummy target Q
-    target_q = torch.randn_like(q_vals)  # random target
-
-    loss_fn = agent.loss_fn
-    loss = loss_fn(q_vals, target_q)
-
-    agent.optimizer.zero_grad()
-    loss.backward()
-    agent.optimizer.step()
-
-    print("Loss:", loss.item())
-
-    # 6. Check parameters updated
-    with torch.no_grad():
-        new_q_vals = agent.q_net(dummy_state_batch)
-    print("Q-values after 1 update:", new_q_vals)
-
-    print("=== SANITY CHECK PASSED ===")
 
 
 
