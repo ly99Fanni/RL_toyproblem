@@ -3,8 +3,6 @@ from config import State, Action, AgentConfig
 from q_model import QNetwork
 import torch.nn as nn
 
-torch.manual_seed(42)
-
 class Agent:
     def __init__(self):
         self.epsilon = AgentConfig.epsilon

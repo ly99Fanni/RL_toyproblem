@@ -35,6 +35,9 @@ class AgentConfig:
     lr: float = 0.0001
     device: str = 'cpu'
     n_actions: int = 3 # {0: short, 1: out, 2: long}
-    state_dim: int = 2 # (price, reward)
+    n_states: int = 3 # down: 0, flat: 1, up: 2
+    num_episodes: int= 5
+    batch_size: int = 10
+    max_steps_per_episode: int = 100
 
 

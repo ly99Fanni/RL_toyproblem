@@ -1,35 +1,29 @@
 import torch
 from environmnet import Environment
-from agent import Agent
+from agent2 import Agent2
 from config import EnvConfig
 
+torch.manual_seed(42)
 
 market = Environment()
-trader = Agent()
+trader = Agent2()
 
 batch_size = 10
+episode = 5
+steps = 100
 
-#0 Set the initial state
-state = market.reset()
-
-for i in range(10):
-    #1 choose action
-    trader_action = trader.select_action(state)
-
-    #2 set environment
-    next_state, reward = market.step(trader_action)
-
-    print('State: ', state)
-    print('Trader action: ', trader_action)
-    print('Reward: ', reward)
-    print('Next state: ', next_state)
-    print('Q values: ', trader.q_net(state), '\n')
-
-    # 3 Update the state
-    state = next_state
-
-print('-'*40, '\n')
-print('Cumulative reward: ', market.cum_reward)
+rewards, price_series = trader.train(
+    market,
+    num_episodes= episode,
+    max_steps_per_episode= steps,
+    batch_size=batch_size
+)
 
 
+for ep in range(episode):
+    r = rewards[ep]
+    series = [round(x, 2) for x in price_series[ep].tolist()]
 
+    print(f"Episode {ep + 1} - Total Reward: {r:.4f}")
+    print("Price series:", series)
+    print("-" * 40)
